@@ -7,7 +7,7 @@
  */
 
 const fs = require('fs');
-const { DEFAULTS, generatePalette, formatPalette } = require('./palette-core');
+const { DEFAULTS, ORDER, generatePalette, formatPalette } = require('./palette-core');
 
 function parseArgs(argv) {
   const args = {};
@@ -34,7 +34,7 @@ function main() {
   if (args.json) config = loadConfig(args.json);
   if (args.bg) config.bg_color = args.bg;
   if (args.bg_color) config.bg_color = args.bg_color;
-  ['bright_green', 'darkish_green', 'dark_orange', 'darker_orange', 'z_yellow', 'bright_orange', 'z_purple', 'matcha', 'prefader_send', 'postfader_send', 'highlight_scale_bg', 'highlight_chord_bg', 'highlight_both_bg', 'highlight_scale_fg', 'highlight_bass_fg', 'highlight_both_fg', 'hover_color', 'selection_color', 'light_blueish'].forEach((k) => {
+  ORDER.forEach((k) => {
     if (args[k]) config[k] = args[k];
   });
 
