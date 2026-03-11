@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Palette Builder · MUI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@mui/material@5.15.14/umd/material-ui.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="./palette-core.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #0f1115;
+      min-height: 100vh;
+      font-family: "Roboto", "Segoe UI", sans-serif;
+    }
+    #root { padding: 20px; }
+    .color-chip {
+      width: 44px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid #262b36;
+      cursor: pointer;
+      background: #0f1115;
+    }
+    .row-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid #1f2430;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #0f1115;
+    }
+    .row-label {
+      min-width: 150px;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: #e7ebf3;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const {
+      PaletteCore: {
+        DEFAULTS, ORDER, buildBackgroundVariants, formatPalette,
+      },
+    } = window;
+    const {
+      ThemeProvider, createTheme, CssBaseline, Box, Grid, Paper, Typography,
+      TextField, Switch, Button, Stack, Divider, Chip, Tooltip,
+    } = MaterialUI;
+
+    const backgroundKeys = ORDER.slice(0, 13);
+    const groups = [
+      { title: 'bkg set', range: [0, 12]},
+      { title: 'overlay set', range: [21, 23] },
+      { title: 'sends set', range: [24, 25] },
+      { title: 'highlight surfaces set', range: [26, 28]},
+      { title: 'highlight text set', range: [29, 31]},
+      { title: 'accent set', range: [13, 20]},
+    ];
+
+    const theme = createTheme({
+      palette: {
+        mode: 'dark',
+        primary: { main: '#f79616' },
+        secondary: { main: '#7ec7ff' },
+        background: {
+          default: '#0f1115',
+          paper: '#12151c',
+        },
+        divider: '#1f2430',
+      },
+      shape: { borderRadius: 0 },
+      typography: {
+        fontFamily: '"Roboto","Segoe UI",sans-serif',
+        mono: '"Roboto Mono","JetBrains Mono","SFMono-Regular",monospace',
+      },
+      components: {
+        MuiPaper: {
+          styleOverrides: {
+            root: {
+              boxShadow: 'none',
+              border: '1px solid #1f2430',
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: { borderRadius: 10, textTransform: 'none' },
+          },
+        },
+        MuiTextField: {
+          styleOverrides: {
+            root: {
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 8,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    function isHexish(val) {
+      return /^#[0-9a-f]{6}$/i.test(val || '');
+    }
+    function normalizeHex(value) {
+      if (!value) return null;
+      let v = value.trim();
+      if (!v.startsWith('#')) v = `#${v}`;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase();
+      return null;
+    }
+
+    const pickBackgrounds = (source) => backgroundKeys
+      .reduce((acc, k) => ({ ...acc, [k]: source[k] }), {});
+
+    function App() {
+      const [autoBackgrounds, setAuto] = React.useState(false);
+      const [inputs, setInputs] = React.useState({ ...DEFAULTS });
+      const [manualBackgrounds, setManualBackgrounds] = React.useState(() => pickBackgrounds(DEFAULTS));
+      const palette = React.useMemo(() => {
+        if (!autoBackgrounds) return { ...inputs };
+        return { ...inputs, ...buildBackgroundVariants(inputs.bg_color) };
+      }, [inputs, autoBackgrounds]);
+
+      const onHexChange = (key, value) => {
+        const clean = normalizeHex(value);
+        if (!clean) return;
+        setInputs((prev) => {
+          const next = { ...prev, [key]: clean };
+          if (!autoBackgrounds || key === 'bg_color') {
+            setManualBackgrounds(pickBackgrounds({ ...prev, [key]: clean }));
+          }
+          return next;
+        });
+      };
+
+      const onTextChange = (key, value) => {
+        setInputs((prev) => {
+          if (!autoBackgrounds) setManualBackgrounds(pickBackgrounds({ ...prev, [key]: value }));
+          return { ...prev, [key]: value };
+        });
+      };
+
+      const handleAutoToggle = (checked) => {
+        if (checked) {
+          setManualBackgrounds(pickBackgrounds(inputs));
+          setAuto(true);
+        } else {
+          setInputs((prev) => ({ ...prev, ...manualBackgrounds }));
+          setAuto(false);
+        }
+      };
+
+      const reset = () => {
+        setInputs({ ...DEFAULTS });
+        setManualBackgrounds(pickBackgrounds(DEFAULTS));
+        setAuto(false);
+      };
+
+      const exportText = formatPalette(palette);
+
+      return (
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" fontWeight={600} gutterBottom>palette.scss builder</Typography>
+            </Box>
+
+            <Paper variant="outlined" sx={{ p: 2, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, bgcolor: 'background.paper' }}>
+              <TextField
+                value={exportText}
+                InputProps={{ readOnly: true, sx: { fontFamily: theme.typography.mono } }}
+                multiline
+                minRows={10}
+                maxRows={16}
+                fullWidth
+              />
+              <Stack spacing={1.2}>
+                <Button variant="contained" color="primary" onClick={() => copyText(exportText)}>copy to clipboard</Button>
+                <Button variant="outlined" onClick={() => downloadText(exportText)}>download .scss</Button>
+                <Button variant="text" onClick={reset}>Reset to defaults</Button>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Switch checked={autoBackgrounds} onChange={(e) => handleAutoToggle(e.target.checked)} />
+                  <Typography variant="body2">auto-derive background variants from bg_color</Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            <Grid container spacing={2}>
+              {[0, 1].map((col) => (
+                <Grid item xs={12} md={6} key={`col-${col}`}>
+                  <Stack spacing={2}>
+                    {groups.slice(col * 3, col * 3 + 3).map((g) => (
+                      <Paper variant="outlined" key={g.title} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                        <Typography variant="subtitle1" fontWeight={600}>{g.title}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{g.hint}</Typography>
+                        <Stack spacing={1}>
+                          {ORDER.slice(g.range[0], g.range[1] + 1).map((key) => {
+                            const isColor = isHexish(DEFAULTS[key]);
+                            const derived = autoBackgrounds && backgroundKeys.includes(key) && key !== 'bg_color';
+                            const value = palette[key];
+                            return (
+                              <Box key={key} className="row-box" sx={{ background: 'transparent', borderColor: '#1f2430' }}>
+                                <Typography className="row-label">{key}</Typography>
+                                <Stack direction="row" spacing={1.2} alignItems="center" sx={{ flex: 1, justifyContent: 'flex-end' }}>
+                                  {isColor && (
+                                    <Tooltip title={derived ? 'Derived from bg_color' : 'Pick color'}>
+                                      <input
+                                        type="color"
+                                        className="color-chip"
+                                        value={isHexish(value) ? value : '#000000'}
+                                        disabled={derived}
+                                        onChange={(e) => onHexChange(key, e.target.value)}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                  <TextField
+                                    size="small"
+                                    label="Value"
+                                    value={value}
+                                    disabled={derived}
+                                    InputProps={{
+                                      sx: {
+                                        fontFamily: isColor ? theme.typography.mono : undefined,
+                                        width: { xs: '100%', sm: 190 },
+                                      },
+                                    }}
+                                    onChange={(e) => (isColor ? onHexChange(key, e.target.value) : onTextChange(key, e.target.value))}
+                                  />
+                                  {derived && <Chip size="small" label="auto" color="secondary" variant="outlined" />}
+                                </Stack>
+                              </Box>
+                            );
+                          })}
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </ThemeProvider>
+      );
+    }
+
+    function copyText(text) {
+      navigator.clipboard?.writeText(text).catch(() => {});
+    }
+
+    function downloadText(text) {
+      const blob = new Blob([text + '\n'], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'palette.scss';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
