@@ -60,7 +60,7 @@
   <script type="text/babel">
     const {
       PaletteCore: {
-        DEFAULTS, ORDER, buildBackgroundVariants, formatPalette,
+        DEFAULTS, ORDER, buildBackgroundVariants, formatPalette, hexToRgb, rgbToHex,
       },
     } = window;
     const {
@@ -141,6 +141,11 @@
       if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase();
       return null;
     }
+    const mixHex = (a, b, t) => {
+      const ca = hexToRgb(a); const cb = hexToRgb(b);
+      const lerp = (x, y) => Math.round(x + (y - x) * t);
+      return rgbToHex({ r: lerp(ca.r, cb.r), g: lerp(ca.g, cb.g), b: lerp(ca.b, cb.b) });
+    };
 
     const pickBackgrounds = (source) => backgroundKeys
       .reduce((acc, k) => ({ ...acc, [k]: source[k] }), {});
@@ -189,6 +194,31 @@
         setAuto(false);
       };
 
+      const autoGrayScale = () => {
+        const darkBase = normalizeHex(inputs.bg_darker_variant2 || DEFAULTS.bg_darker_variant2) || '#000000';
+        const lightBase = '#F5F5F5';
+        const keys = ['gray_100','gray_200','gray_300','gray_400','gray_500','gray_600','gray_700','gray_800','gray_900'];
+        const next = {};
+        keys.forEach((k, idx) => {
+          const t = idx / (keys.length - 1);
+          next[k] = mixHex(darkBase, lightBase, t);
+        });
+        setInputs((prev) => ({ ...prev, ...next }));
+      };
+
+      const applyRadiusPreset = (preset) => {
+        const presets = {
+          sharp: ['0','0','0','0','0','0','0'],
+          soft: ['0','2px','4px','6px','8px','12px','50%'],
+          rounded: ['2px','4px','6px','8px','10px','14px','50%'],
+        };
+        const vals = presets[preset] || presets.soft;
+        const keys = ['radius_none', 'radius_sm', 'radius_md', 'radius_lg', 'radius_xl', 'radius_xxl', 'radius_full'];
+        const next = {};
+        keys.forEach((k, i) => { next[k] = vals[i]; });
+        setInputs((prev) => ({ ...prev, ...next }));
+      };
+
       const exportText = formatPalette(palette);
       const mid = Math.ceil(groups.length / 2);
       const columnGroups = [groups.slice(0, mid), groups.slice(mid)];
@@ -229,6 +259,18 @@
                       <Paper variant="outlined" key={g.title} sx={{ p: 2, bgcolor: 'background.paper' }}>
                         <Typography variant="subtitle1" fontWeight={600}>{g.title}</Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{g.hint}</Typography>
+                        {(g.title === 'Neutral grays') && (
+                          <Button size="small" variant="outlined" sx={{ mb: 1 }} onClick={autoGrayScale}>
+                            auto-generate gray scale from bg
+                          </Button>
+                        )}
+                        {(g.title === 'Radii') && (
+                          <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                            <Button size="small" variant="outlined" onClick={() => applyRadiusPreset('soft')}>soft</Button>
+                            <Button size="small" variant="outlined" onClick={() => applyRadiusPreset('rounded')}>rounded</Button>
+                            <Button size="small" variant="text" onClick={() => applyRadiusPreset('sharp')}>square</Button>
+                          </Stack>
+                        )}
                         <Stack spacing={1}>
                           {g.keys.map((key) => {
                             const isColor = isHexish(DEFAULTS[key]);
