@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Palette Builder · MUI</title>
+  <title>Palette Builder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,13 +13,12 @@
   <script src="https://unpkg.com/@mui/material@5.15.14/umd/material-ui.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="./palette-core.js"></script>
-
-
-
   <meta property="og:title" content="Your Content Title Here" />
   <meta property="og:description" content="A brief description of your content" />
   <meta property="og:image" content="/kdfnskjf.jpg" />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="/kdfnskjf.jpg" />
+  <meta property="og:logo" content="/kdfnskjf.jpg" />
 
 <!-- Meta Tags Generated with https://metatags.io -->
   <style>
@@ -71,12 +70,23 @@
 
     const backgroundKeys = ORDER.slice(0, 13);
     const groups = [
-      { title: 'bkg set', range: [0, 12]},
-      { title: 'overlay set', range: [21, 23] },
-      { title: 'sends set', range: [24, 25] },
-      { title: 'highlight surfaces set', range: [26, 28]},
-      { title: 'highlight text set', range: [29, 31]},
-      { title: 'accent set', range: [13, 20]},
+      { title: 'Background set', hint: 'Derived from bg_color when auto is enabled.', keys: ORDER.slice(0, 13) },
+      { title: 'Overlay / alpha', hint: 'gtkalpha values allowed.', keys: ORDER.slice(21, 24) },
+      { title: 'Sends', hint: 'Prefader and postfader sends.', keys: ORDER.slice(24, 26) },
+      { title: 'Highlight surfaces', hint: 'Backgrounds for highlights.', keys: ORDER.slice(26, 29) },
+      { title: 'Highlight text', hint: 'Foreground highlight colors.', keys: ORDER.slice(29, 32) },
+      { title: 'Text / meta', hint: 'General text colors.', keys: ['text_color', 'dim_fg'] },
+      { title: 'Accent colors', hint: 'Primary accent + greens/yellows/purples.', keys: ORDER.slice(13, 21) },
+      { title: 'Borders & dividers', hint: 'Stroke utilities.', keys: ['border_color', 'border_color_light', 'border_color_dark', 'divider_color'] },
+      { title: 'Accent red', hint: 'Red variants.', keys: ['accent_red', 'accent_red_light', 'accent_red_dark'] },
+      { title: 'Accent blue', hint: 'Blue variants.', keys: ['accent_blue', 'accent_blue_light', 'accent_blue_dark'] },
+      { title: 'Accent green', hint: 'Green variants.', keys: ['accent_green', 'accent_green_light', 'accent_green_dark'] },
+      { title: 'Accent cyan', hint: 'Cyan variants.', keys: ['accent_cyan', 'accent_cyan_light', 'accent_cyan_dark'] },
+      { title: 'Accent pink', hint: 'Pink variants.', keys: ['accent_pink', 'accent_pink_light', 'accent_pink_dark'] },
+      { title: 'Semantic colors', hint: 'Success / warning / error / info.', keys: ['success_color', 'warning_color', 'error_color', 'info_color'] },
+      { title: 'Neutral grays', hint: 'Extended gray scale.', keys: ['gray_100', 'gray_200', 'gray_300', 'gray_400', 'gray_500', 'gray_600', 'gray_700', 'gray_800', 'gray_900'] },
+      { title: 'Semantic backgrounds', hint: 'Tinted backgrounds.', keys: ['success_bg', 'warning_bg', 'error_bg', 'info_bg'] },
+      { title: 'Radii', hint: 'Corner radius tokens.', keys: ['radius_none', 'radius_sm', 'radius_md', 'radius_lg', 'radius_xl', 'radius_xxl', 'radius_full'] },
     ];
 
     const theme = createTheme({
@@ -180,6 +190,8 @@
       };
 
       const exportText = formatPalette(palette);
+      const mid = Math.ceil(groups.length / 2);
+      const columnGroups = [groups.slice(0, mid), groups.slice(mid)];
 
       return (
         <ThemeProvider theme={theme}>
@@ -210,15 +222,15 @@
             </Paper>
 
             <Grid container spacing={2}>
-              {[0, 1].map((col) => (
+              {columnGroups.map((colGroups, col) => (
                 <Grid item xs={12} md={6} key={`col-${col}`}>
                   <Stack spacing={2}>
-                    {groups.slice(col * 3, col * 3 + 3).map((g) => (
+                    {colGroups.map((g) => (
                       <Paper variant="outlined" key={g.title} sx={{ p: 2, bgcolor: 'background.paper' }}>
                         <Typography variant="subtitle1" fontWeight={600}>{g.title}</Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{g.hint}</Typography>
                         <Stack spacing={1}>
-                          {ORDER.slice(g.range[0], g.range[1] + 1).map((key) => {
+                          {g.keys.map((key) => {
                             const isColor = isHexish(DEFAULTS[key]);
                             const derived = autoBackgrounds && backgroundKeys.includes(key) && key !== 'bg_color';
                             const value = palette[key];
